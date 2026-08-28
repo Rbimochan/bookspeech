@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+backend/models/
+*.pyc
+.env
+storage/uploads/*
+storage/output/*
+storage/logs/*
+storage/cache/
+storage/settings.json
+!storage/uploads/.gitkeep
+!storage/output/.gitkeep
+!storage/logs/.gitkeep
+*.db
+.DS_Store
+node_modules/
+book to convert/

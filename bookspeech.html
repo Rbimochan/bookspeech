@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BookSpeech — Project Plan</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e6e8eb;
+    --muted: #9aa2b1;
+    --accent: #7dd3c0;
+    --accent2: #e6a94f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0 0 80px 0;
+    line-height: 1.5;
+  }
+  header {
+    padding: 48px 32px 32px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1a1e27 0%, var(--bg) 100%);
+  }
+  header h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    color: var(--muted);
+    max-width: 720px;
+    margin: 0;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .stat b { color: var(--accent); font-size: 16px; }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+  .plan {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .plan-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    background: #1b1f28;
+  }
+  .plan-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--accent);
+    border-radius: 6px;
+    padding: 3px 9px;
+  }
+  .plan-header h2 {
+    margin: 0;
+    font-size: 19px;
+  }
+  .plan-goal {
+    padding: 14px 24px 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  ol.subplans {
+    margin: 12px 24px 20px;
+    padding-left: 20px;
+  }
+  ol.subplans li {
+    margin-bottom: 8px;
+    font-size: 14.5px;
+  }
+  ol.subplans li code {
+    background: #10131a;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+  footer {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 32px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BookSpeech</h1>
+  <p>EPUB → audiobook (.m4b) converter. Local-first TTS via Kokoro-82M (swappable engine interface for XTTS-v2 later), FastAPI backend with job queue, simple local web UI. This document is the full build plan: 10 plans × 10 sub-plans = 100 actionable tasks, in build order. Hand this whole file to Claude Code as the spec.</p>
+  <div class="stats">
+    <div class="stat"><b>10</b> plans</div>
+    <div class="stat"><b>100</b> sub-plans</div>
+    <div class="stat"><b>Kokoro-82M</b> default TTS</div>
+    <div class="stat"><b>.m4b</b> output w/ chapters</div>
+  </div>
+</header>
+
+<main>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 1</span><h2>Project Setup &amp; Environment</h2></div>
+  <div class="plan-goal">Get a clean, reproducible dev environment before any feature code.</div>
+  <ol class="subplans">
+    <li>Create repo structure: <code>backend/</code>, <code>frontend/</code>, <code>storage/uploads</code>, <code>storage/output</code>, <code>tests/</code></li>
+    <li>Init Python project with <code>uv</code> or <code>poetry</code>; pin Python 3.11+</li>
+    <li>Add core deps: <code>fastapi</code>, <code>uvicorn</code>, <code>ebooklib</code>, <code>beautifulsoup4</code>, <code>ffmpeg-python</code>, <code>mutagen</code>, <code>pydantic</code></li>
+    <li>Add TTS deps: <code>kokoro-onnx</code> (or <code>kokoro</code> pip pkg) + <code>onnxruntime</code> (GPU variant if CUDA available)</li>
+    <li>Verify <code>ffmpeg</code> binary is installed on system PATH; document install steps per OS</li>
+    <li>Set up SQLite file for job/book metadata (no external DB dependency for v1)</li>
+    <li>Create <code>.env.example</code> for config: storage paths, max concurrent jobs, default voice</li>
+    <li>Add <code>Makefile</code> or simple scripts: <code>run-backend</code>, <code>run-frontend</code>, <code>run-tests</code></li>
+    <li>Set up basic logging config (structured, per-job log file under <code>storage/logs/&lt;job_id&gt;.log</code>)</li>
+    <li>Write root <code>README.md</code> with architecture diagram and setup instructions</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 2</span><h2>EPUB Parsing</h2></div>
+  <div class="plan-goal">Reliably extract clean, ordered chapter text and metadata from arbitrary epub files.</div>
+  <ol class="subplans">
+    <li>Build <code>epub_parser.py</code> using <code>ebooklib</code> to load an epub file</li>
+    <li>Extract book-level metadata: title, author, cover image, language</li>
+    <li>Walk the spine in reading order (not just file order) to get correct chapter sequence</li>
+    <li>For each spine item, extract raw XHTML and parse with BeautifulSoup</li>
+    <li>Detect chapter boundaries: use <code>&lt;h1&gt;</code>/<code>&lt;h2&gt;</code> headings or spine-item splits as chapter markers</li>
+    <li>Extract plain text per chapter, preserving paragraph breaks</li>
+    <li>Handle nested/multi-file chapters (some epubs split one chapter across multiple XHTML files)</li>
+    <li>Extract cover image separately for embedding into final .m4b metadata</li>
+    <li>Build a <code>Book</code> data model: <code>{title, author, cover_path, chapters: [{index, title, text}]}</code></li>
+    <li>Write parser tests against 3–5 real-world epub samples (Project Gutenberg is a good free source) covering different structures</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 3</span><h2>Text Cleaning &amp; Normalization</h2></div>
+  <div class="plan-goal">Turn raw extracted text into TTS-ready text. This is the highest-leverage module for output quality.</div>
+  <ol class="subplans">
+    <li>Strip residual HTML tags, entities, and non-content artifacts (page numbers, running headers)</li>
+    <li>Remove or resolve footnote/endnote markers (e.g. superscript numbers) — either drop or inline as parenthetical</li>
+    <li>Normalize whitespace: collapse multiple newlines/spaces, fix hyphenated line-break words ("exam-\nple" → "example")</li>
+    <li>Number normalization: dates, currency, ordinals, decimals → spoken form (use a lib like <code>num2words</code> or write targeted rules)</li>
+    <li>Abbreviation expansion: "Dr.", "Mr.", "e.g.", "etc." → spoken form, with a configurable dictionary</li>
+    <li>Handle quotation marks and em-dashes so TTS pacing doesn't stumble (normalize curly quotes, spacing around dashes)</li>
+    <li>Detect and flag non-English/foreign phrases (option to skip TTS-mangling or mark for manual review)</li>
+    <li>Strip or convert tables/lists to something speakable (or flag as "skipped — not suitable for audio" in the job log)</li>
+    <li>Build a pluggable rules pipeline (ordered list of normalization functions) so rules can be added without touching core logic</li>
+    <li>Write unit tests with tricky real sentences (numbers, abbreviations, nested quotes) asserting exact normalized output</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 4</span><h2>Chunking Engine</h2></div>
+  <div class="plan-goal">Split cleaned chapter text into TTS-safe chunks without breaking prosody at bad points.</div>
+  <ol class="subplans">
+    <li>Determine Kokoro's practical max input length per call (empirically test, then set safe ceiling)</li>
+    <li>Implement sentence segmentation (use <code>nltk</code>/<code>spacy</code> sentence tokenizer, not naive regex split on periods)</li>
+    <li>Group consecutive sentences into chunks up to the char/token ceiling, never splitting mid-sentence</li>
+    <li>Prefer paragraph boundaries as chunk boundaries when they fit within the ceiling (better prosody continuity)</li>
+    <li>Handle edge case: single sentence longer than max chunk size (split on clause/comma as fallback)</li>
+    <li>Preserve chunk-to-source mapping (chunk index → original paragraph/sentence range) for debugging</li>
+    <li>Attach chapter/chunk sequence numbers so audio assembly can reorder reliably even with async/parallel synthesis</li>
+    <li>Add a dry-run mode: output chunk boundaries as text/JSON without running TTS, for QA before burning compute</li>
+    <li>Make chunk size configurable per TTS engine (Kokoro vs XTTS will have different limits)</li>
+    <li>Write tests: verify no chunk exceeds limit, no sentence is split, and chunks reassemble to original text losslessly</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 5</span><h2>TTS Engine Integration (Kokoro)</h2></div>
+  <div class="plan-goal">A clean, swappable TTS engine interface with Kokoro as the default implementation.</div>
+  <ol class="subplans">
+    <li>Define abstract <code>TTSEngine</code> interface: <code>synthesize(text: str, voice: str, speed: float) -> np.ndarray/wav bytes</code></li>
+    <li>Define <code>list_voices() -> List[VoiceInfo]</code> method for UI voice selection</li>
+    <li>Implement <code>KokoroEngine</code> using <code>kokoro-onnx</code>, loading the ONNX model once at startup (not per-request)</li>
+    <li>Handle sample rate consistency (Kokoro outputs at a fixed rate — document and enforce it downstream)</li>
+    <li>Add GPU/CPU auto-detection for onnxruntime provider selection</li>
+    <li>Implement batching if Kokoro supports it, to speed up multi-chunk synthesis</li>
+    <li>Add per-chunk retry logic (TTS calls can occasionally fail/produce garbage — detect near-silent/empty output and retry)</li>
+    <li>Save each synthesized chunk as a temp wav file under <code>storage/uploads/&lt;job_id&gt;/chunks/</code></li>
+    <li>Stub out <code>XTTSEngine</code> class (not implemented yet) so the interface is proven pluggable from day one</li>
+    <li>Write a standalone script/test that synthesizes one paragraph end-to-end and plays/saves it, for fast manual QA</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 6</span><h2>Audio Assembly &amp; M4B Packaging</h2></div>
+  <div class="plan-goal">Turn synthesized chunk audio into one properly chaptered, metadata-rich .m4b file.</div>
+  <ol class="subplans">
+    <li>Concatenate chunk wavs into one wav per chapter, in correct order, with small configurable silence gaps between sentences/paragraphs</li>
+    <li>Track chapter start/end timestamps in seconds as chapters are concatenated</li>
+    <li>Concatenate all chapter wavs into one full-book wav (or stream via ffmpeg concat demuxer to avoid huge memory use)</li>
+    <li>Encode final audio to AAC via ffmpeg (<code>.m4b</code> container = m4a/AAC with audiobook flag)</li>
+    <li>Generate ffmpeg chapter metadata file (<code>;FFMETADATA1</code> format) from tracked chapter timestamps</li>
+    <li>Embed book metadata into the .m4b: title, author, cover image (from Plan 2), narrator = "BookSpeech / Kokoro"</li>
+    <li>Set correct audiobook-specific tags so apps like BookPlayer/Apple Books recognize it as an audiobook (genre tag, media type)</li>
+    <li>Clean up intermediate chunk/chapter wav files after successful final assembly (configurable: keep for debug vs delete)</li>
+    <li>Verify output: parse the generated .m4b back out (via <code>mutagen</code>) and assert chapters/metadata are present and correct</li>
+    <li>Handle large-book memory/disk safety: stream-based ffmpeg concat rather than loading full book into memory</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 7</span><h2>Job Queue &amp; Backend API</h2></div>
+  <div class="plan-goal">Non-blocking job orchestration so multi-hour conversions don't hang HTTP requests, plus a clean API for the UI.</div>
+  <ol class="subplans">
+    <li>Design <code>Job</code> model: <code>id, book_title, status (queued/parsing/cleaning/synthesizing/assembling/done/failed), progress_pct, current_chapter, error_msg, output_path</code></li>
+    <li>Implement lightweight background worker (asyncio task queue for v1; note upgrade path to <code>rq</code>/<code>celery</code> if scaling needed)</li>
+    <li>Enforce max concurrent jobs (configurable, default 1–2 given TTS is compute-heavy) with a queue for the rest</li>
+    <li><code>POST /books/upload</code> — accept epub file, parse metadata immediately, return book preview (title, author, chapter count, cover) without starting synthesis</li>
+    <li><code>POST /jobs</code> — start a conversion job given book_id + voice + speed, returns job_id</li>
+    <li><code>GET /jobs/{id}</code> — poll job status/progress</li>
+    <li><code>GET /jobs/{id}/stream</code> — optional SSE endpoint for live progress push instead of polling</li>
+    <li><code>GET /jobs/{id}/download</code> — stream the finished .m4b file</li>
+    <li><code>GET /voices</code> — list available TTS voices (delegates to TTSEngine.list_voices())</li>
+    <li>Persist jobs/books to SQLite so history survives a backend restart; add <code>GET /library</code> listing past conversions</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 8</span><h2>Frontend Web UI</h2></div>
+  <div class="plan-goal">Simple local web UI: upload, configure, watch progress, download — nothing fancier than needed.</div>
+  <ol class="subplans">
+    <li>Choose stack: plain HTML + HTMX/Alpine, or minimal React+Vite (pick one — don't over-engineer for a local tool)</li>
+    <li>Build <code>UploadView</code>: drag-and-drop epub upload, show extracted title/author/cover/chapter count on success</li>
+    <li>Build voice selection control, populated from <code>GET /voices</code>, with a "preview" button (see Plan 9)</li>
+    <li>Add speed/speaking-rate slider if Kokoro supports rate control</li>
+    <li>Build "Start conversion" action → calls <code>POST /jobs</code>, transitions to progress view</li>
+    <li>Build <code>ProgressView</code>: overall % bar + current chapter name/index, polling or SSE-driven</li>
+    <li>Handle failure state in UI: show error message and a retry action if a job fails</li>
+    <li>Build <code>LibraryView</code>: list past books/jobs with status, download link for completed ones</li>
+    <li>Add basic responsive layout (desktop-first is fine, it's a local tool) and dark theme consistent with a "book/audio" aesthetic</li>
+    <li>Wire up download button to <code>GET /jobs/{id}/download</code>, triggering browser file save</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 9</span><h2>Voice Preview &amp; Selection</h2></div>
+  <div class="plan-goal">Let the user hear a voice before committing to a multi-hour job.</div>
+  <ol class="subplans">
+    <li>Curate a short fixed preview sentence (~10–15 words) used for all voice previews</li>
+    <li>Add <code>POST /voices/{voice_id}/preview</code> — synthesizes the preview sentence on demand, returns audio</li>
+    <li>Cache preview audio per voice on first generation (avoid re-synthesizing the same preview repeatedly)</li>
+    <li>Add inline audio player per voice option in the UI dropdown/list</li>
+    <li>Show voice metadata if available (gender, accent/language, sample rate) alongside preview</li>
+    <li>Allow the user to type a custom preview line (optional, uses their own book's opening line for a truer preview)</li>
+    <li>Handle preview failure gracefully (voice unavailable/model error) without blocking the rest of the UI</li>
+    <li>Persist the user's last-selected voice as a UI default for next session (localStorage or simple cookie)</li>
+    <li>Add speed preview too — regenerate preview when speed slider changes</li>
+    <li>Write a quick manual QA checklist: preview every bundled Kokoro voice once, note any that sound broken</li>
+  </ol>
+</div>
+
+<div class="plan">
+  <div class="plan-header"><span class="plan-num">PLAN 10</span><h2>Testing, Error Handling &amp; Deployment</h2></div>
+  <div class="plan-goal">Make it robust enough to trust with a real multi-hour book conversion, and easy to run locally.</div>
+  <ol class="subplans">
+    <li>Define failure modes explicitly: corrupt epub, unsupported DRM'd epub, TTS engine crash mid-book, disk full, ffmpeg missing</li>
+    <li>Add input validation on upload (file type, size limit, reject DRM-protected epub with a clear message)</li>
+    <li>Add resumable jobs: if synthesis fails at chapter N, allow resuming from N rather than restarting the whole book</li>
+    <li>Add end-to-end integration test: real small epub (public domain, 3–4 short chapters) → full pipeline → verify valid playable .m4b with correct chapter count</li>
+    <li>Add performance benchmark script: measure synthesis time per 1000 words on target hardware, surface expected total time estimate to user before starting a job</li>
+    <li>Add disk space check before starting a job (estimate output size, warn if insufficient)</li>
+    <li>Write a single <code>docker-compose.yml</code> (or documented native setup) bundling backend + ffmpeg + model weights for easy local spin-up</li>
+    <li>Add a settings page/config file for defaults: default voice, max concurrent jobs, output directory location</li>
+    <li>Write troubleshooting doc: common ffmpeg errors, ONNX runtime GPU setup issues, epub parsing edge cases</li>
+    <li>Final smoke test: convert one full-length real novel start to finish, listen to first/last chapter and one random middle chapter for quality check</li>
+  </ol>
+</div>
+
+</main>
+
+<footer>
+  BookSpeech build plan — 10 plans × 10 sub-plans = 100 tasks. Recommended build order: 1 → 2 → 3 → 4 → 5 → 6 (prove the core pipeline end-to-end as a script) → 7 → 8 → 9 → 10.
+</footer>
+
+</body>
+</html>

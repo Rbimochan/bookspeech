@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BookSpeech</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel2: #1b1f28;
+    --border: #2a2e38;
+    --text: #e6e8eb;
+    --muted: #9aa2b1;
+    --accent: #7dd3c0;
+    --accent2: #e6a94f;
+    --danger: #e2685f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: -0.3px; }
+  header h1 span { color: var(--accent); }
+  nav { display: flex; gap: 8px; }
+  nav button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  nav button.active { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+  main { max-width: 720px; margin: 0 auto; padding: 32px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { margin: 0 0 16px; font-size: 17px; }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--panel2); }
+  .dropzone input { display: none; }
+
+  .book-preview { display: flex; gap: 16px; align-items: center; }
+  .book-preview img { width: 72px; height: 108px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); background: var(--panel2); }
+  .book-preview .meta b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .book-preview .meta span { display: block; color: var(--muted); font-size: 13px; }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin: 16px 0 6px; }
+  select, input[type=range] { width: 100%; }
+  select {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .speed-row { display: flex; align-items: center; gap: 12px; }
+  .speed-row span { font-size: 13px; color: var(--muted); min-width: 40px; text-align: right; }
+
+  .voice-preview-btn {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .voice-preview-btn:hover { border-color: var(--accent); }
+  .voice-preview-btn:disabled { opacity: 0.5; cursor: default; }
+
+  button.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: default; }
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .progress-bar-track { background: var(--panel2); border-radius: 999px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-bar-fill { background: var(--accent); height: 100%; transition: width 0.3s ease; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  .error-box { border: 1px solid var(--danger); background: #2a1616; color: #f2b8b2; border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .status-pill { padding: 2px 9px; border-radius: 999px; font-size: 12px; display: inline-block; }
+  .status-done { background: #16332c; color: var(--accent); }
+  .status-failed { background: #332020; color: var(--danger); }
+  .status-active { background: #33290f; color: var(--accent2); }
+  .lib-actions a, .lib-actions button { font-size: 13px; }
+  .empty-state { color: var(--muted); text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body x-data="app()" x-init="init()">
+
+<header>
+  <h1>Book<span>Speech</span></h1>
+  <nav>
+    <button :class="{active: view === 'convert'}" @click="goConvert()">Convert</button>
+    <button :class="{active: view === 'library'}" @click="showLibrary()">Library</button>
+    <button :class="{active: view === 'settings'}" @click="showSettings()">Settings</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===================== CONVERT: UPLOAD ===================== -->
+  <template x-if="view === 'convert' && stage === 'upload'">
+    <div class="card">
+      <h2>Upload a book</h2>
+      <div class="dropzone"
+           :class="{dragover: dragging}"
+           @dragover.prevent="dragging = true"
+           @dragleave.prevent="dragging = false"
+           @drop.prevent="dragging = false; handleFiles($event.dataTransfer.files)"
+           @click="$refs.fileInput.click()">
+        <div x-show="!uploading">Drag & drop an .epub, .pdf, or .html file here, or click to browse</div>
+        <div x-show="uploading">Uploading and parsing…</div>
+        <input type="file" accept=".epub,.pdf,.html,.htm" x-ref="fileInput" @change="handleFiles($event.target.files)">
+      </div>
+      <div class="error-box" style="margin-top:16px" x-show="uploadError" x-text="uploadError"></div>
+    </div>
+  </template>
+
+  <!-- ===================== CONVERT: CONFIGURE ===================== -->
+  <template x-if="view === 'convert' && stage === 'configure'">
+    <div>
+      <div class="card">
+        <h2>Book</h2>
+        <div class="book-preview">
+          <img :src="book.cover_path ? apiBase + '/cover/' + book.book_id : ''" @error="$event.target.style.display='none'" alt="">
+          <div class="meta">
+            <b x-text="book.title"></b>
+            <span x-text="book.author"></span>
+            <span x-text="book.chapter_count + ' chapters'"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Voice & Speed</h2>
+
+        <label>Voice</label>
+        <select x-model="selectedVoice" @change="stopPreview()">
+          <template x-for="v in voices" :key="v.id">
+            <option :value="v.id" x-text="v.name + (v.language ? ' — ' + v.language : '') + (v.gender ? ' (' + v.gender + ')' : '')"></option>
+          </template>
+        </select>
+        <button class="voice-preview-btn" @click="previewVoice()" :disabled="previewing">
+          <span x-text="previewing ? 'Generating preview…' : '▶ Preview voice'"></span>
+        </button>
+        <div class="error-box" style="margin-top:8px" x-show="previewError" x-text="previewError"></div>
+
+        <label>Preview text <span style="color:var(--muted)">(optional — try your book's opening line)</span></label>
+        <input type="text" x-model="previewText" placeholder="The quick brown fox jumps over the lazy dog…"
+               style="width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px">
+
+        <label>Speed: <span x-text="speed.toFixed(2) + 'x'"></span></label>
+        <div class="speed-row">
+          <input type="range" min="0.5" max="1.5" step="0.05" x-model.number="speed" @change="reprevIfAlreadyPreviewed()">
+        </div>
+      </div>
+
+      <button class="primary" @click="startJob()" :disabled="!selectedVoice">Start conversion</button>
+      <div class="error-box" style="margin-top:16px" x-show="jobError" x-text="jobError"></div>
+    </div>
+  </template>
+
+  <!-- ===================== CONVERT: PROGRESS ===================== -->
+  <template x-if="view === 'convert' && stage === 'progress'">
+    <div class="card">
+      <h2 x-text="book.title"></h2>
+
+      <template x-if="!['failed', 'cancelled'].includes(jobStatus)">
+        <div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" :style="'width:' + progressPct + '%'"></div>
+          </div>
+          <div class="progress-meta">
+            <span x-text="statusLabel(jobStatus)"></span>
+            <span x-text="progressPct.toFixed(0) + '%'"></span>
+          </div>
+          <div class="progress-meta" x-show="currentChapter">
+            <span x-text="'Currently: ' + currentChapter"></span>
+            <span></span>
+          </div>
+          <button class="secondary" style="margin-top:16px" @click="cancelJob()" x-show="jobStatus !== 'done'" :disabled="cancelling">
+            <span x-text="cancelling ? 'Cancelling…' : 'Cancel'"></span>
+          </button>
+        </div>
+      </template>
+
+      <template x-if="jobStatus === 'failed'">
+        <div>
+          <div class="error-box" x-text="jobErrorMsg || 'Conversion failed.'"></div>
+          <button class="secondary" style="margin-top:16px" @click="retryJob()">Retry</button>
+        </div>
+      </template>
+
+      <template x-if="jobStatus === 'cancelled'">
+        <div>
+          <div class="error-box">Conversion cancelled.</div>
+          <button class="secondary" style="margin-top:16px" @click="retryJob()">Resume</button>
+        </div>
+      </template>
+
+      <template x-if="jobStatus === 'done'">
+        <div>
+          <a class="primary" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box"
+             :href="apiBase + '/jobs/' + jobId + '/download'" download>Download .m4b</a>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <!-- ===================== LIBRARY ===================== -->
+  <template x-if="view === 'library'">
+    <div class="card">
+      <h2>Library</h2>
+      <template x-if="library.length === 0">
+        <div class="empty-state">No conversions yet. Start one from the Convert tab.</div>
+      </template>
+      <table x-show="library.length > 0">
+        <thead>
+          <tr><th>Book</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          <template x-for="job in library" :key="job.id">
+            <tr>
+              <td x-text="job.book_title"></td>
+              <td>
+                <span class="status-pill"
+                      :class="{'status-done': job.status === 'done', 'status-failed': ['failed','cancelled'].includes(job.status), 'status-active': !['done','failed','cancelled'].includes(job.status)}"
+                      x-text="job.status"></span>
+              </td>
+              <td class="lib-actions">
+                <a x-show="job.status === 'done'" :href="apiBase + '/jobs/' + job.id + '/download'" download>Download</a>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </template>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <template x-if="view === 'settings'">
+    <div class="card">
+      <h2>Settings</h2>
+
+      <label>Default voice</label>
+      <select x-model="settingsForm.default_voice">
+        <template x-for="v in voices" :key="v.id">
+          <option :value="v.id" x-text="v.name + (v.language ? ' — ' + v.language : '')"></option>
+        </template>
+      </select>
+
+      <label>Max concurrent jobs</label>
+      <select x-model.number="settingsForm.max_concurrent_jobs">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+
+      <label>Output directory <span style="color:var(--muted)">(read-only — set via STORAGE_DIR env var)</span></label>
+      <div style="color:var(--muted);font-size:13px;font-family:monospace" x-text="settingsForm.output_dir"></div>
+
+      <button class="primary" @click="saveSettings()" :disabled="savingSettings">
+        <span x-text="savingSettings ? 'Saving…' : 'Save settings'"></span>
+      </button>
+      <div class="error-box" style="margin-top:16px;border-color:var(--accent);background:#12251f;color:var(--accent)" x-show="settingsSaved" x-text="'Saved.'"></div>
+    </div>
+  </template>
+
+</main>
+
+<audio x-ref="previewAudio" @ended="previewing = false" @error="onPreviewError()" @canplay="previewing = false" style="display:none"></audio>
+
+<script>
+function app() {
+  return {
+    apiBase: (localStorage.getItem('bookspeech_api_base') || 'http://localhost:8000'),
+    view: 'convert',
+    stage: 'upload', // upload -> configure -> progress
+    dragging: false,
+    uploading: false,
+    uploadError: '',
+    book: {},
+    voices: [],
+    selectedVoice: localStorage.getItem('bookspeech_last_voice') || '',
+    speed: 0.9,
+    previewing: false,
+    previewError: '',
+    previewText: '',
+    hasPreviewed: false,
+    jobId: null,
+    jobStatus: 'queued',
+    jobErrorMsg: '',
+    jobError: '',
+    cancelling: false,
+    progressPct: 0,
+    currentChapter: '',
+    library: [],
+    eventSource: null,
+    settingsForm: { default_voice: '', max_concurrent_jobs: 1, output_dir: '' },
+    savingSettings: false,
+    settingsSaved: false,
+
+    init() {
+      this.loadVoices();
+    },
+
+    async loadVoices() {
+      try {
+        const resp = await fetch(this.apiBase + '/voices');
+        if (!resp.ok) return;
+        this.voices = await resp.json();
+        if (!this.selectedVoice && this.voices.length) {
+          this.selectedVoice = this.voices[0].id;
+        }
+      } catch (e) {
+        // Backend not reachable yet / model not loaded — voice select just stays empty.
+      }
+    },
+
+    goConvert() {
+      this.view = 'convert';
+    },
+
+    async showLibrary() {
+      this.view = 'library';
+      try {
+        const resp = await fetch(this.apiBase + '/library');
+        this.library = resp.ok ? await resp.json() : [];
+      } catch (e) {
+        this.library = [];
+      }
+    },
+
+    async showSettings() {
+      this.view = 'settings';
+      this.settingsSaved = false;
+      try {
+        const resp = await fetch(this.apiBase + '/settings');
+        if (resp.ok) this.settingsForm = await resp.json();
+      } catch (e) {}
+    },
+
+    async saveSettings() {
+      this.savingSettings = true;
+      this.settingsSaved = false;
+      try {
+        const resp = await fetch(this.apiBase + '/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            default_voice: this.settingsForm.default_voice,
+            max_concurrent_jobs: this.settingsForm.max_concurrent_jobs,
+          }),
+        });
+        if (resp.ok) {
+          this.settingsForm = await resp.json();
+          this.settingsSaved = true;
+        }
+      } catch (e) {
+      } finally {
+        this.savingSettings = false;
+      }
+    },
+
+    handleFiles(files) {
+      if (!files || !files.length) return;
+      const file = files[0];
+      const name = file.name.toLowerCase();
+      if (!name.endsWith('.epub') && !name.endsWith('.pdf') && !name.endsWith('.html') && !name.endsWith('.htm')) {
+        this.uploadError = 'Please choose a .epub, .pdf, or .html file.';
+        return;
+      }
+      this.uploadFile(file);
+    },
+
+    async uploadFile(file) {
+      this.uploading = true;
+      this.uploadError = '';
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const resp = await fetch(this.apiBase + '/books/upload', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (!resp.ok) {
+          this.uploadError = data.detail || 'Upload failed.';
+          return;
+        }
+        this.book = data;
+        this.stage = 'configure';
+      } catch (e) {
+        this.uploadError = 'Could not reach the backend. Is it running?';
+      } finally {
+        this.uploading = false;
+      }
+    },
+
+    previewVoice() {
+      if (!this.selectedVoice) return;
+      this.previewing = true;
+      this.previewError = '';
+      this.hasPreviewed = true;
+      const audio = this.$refs.previewAudio;
+      const params = new URLSearchParams({ speed: this.speed });
+      if (this.previewText.trim()) params.set('text', this.previewText.trim());
+      audio.src = this.apiBase + '/voices/' + encodeURIComponent(this.selectedVoice) + '/preview?' + params;
+      audio.play().catch(() => { this.previewing = false; });
+    },
+
+    reprevIfAlreadyPreviewed() {
+      if (this.hasPreviewed) this.previewVoice();
+    },
+
+    onPreviewError() {
+      this.previewing = false;
+      this.previewError = 'Could not preview this voice.';
+    },
+
+    stopPreview() {
+      const audio = this.$refs.previewAudio;
+      audio.pause();
+      this.previewing = false;
+      this.previewError = '';
+    },
+
+    async startJob() {
+      this.jobError = '';
+      localStorage.setItem('bookspeech_last_voice', this.selectedVoice);
+      try {
+        const resp = await fetch(this.apiBase + '/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ book_id: this.book.book_id, voice: this.selectedVoice, speed: this.speed }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          this.jobError = data.detail || 'Could not start conversion.';
+          return;
+        }
+        this.jobId = data.job_id;
+        this.jobStatus = 'queued';
+        this.progressPct = 0;
+        this.stage = 'progress';
+        this.watchJob();
+      } catch (e) {
+        this.jobError = 'Could not reach the backend.';
+      }
+    },
+
+    watchJob() {
+      if (this.eventSource) this.eventSource.close();
+      this.eventSource = new EventSource(this.apiBase + '/jobs/' + this.jobId + '/stream');
+      this.eventSource.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.status) this.jobStatus = data.status;
+        if (typeof data.progress_pct === 'number') this.progressPct = data.progress_pct;
+        if (data.current_chapter) this.currentChapter = data.current_chapter;
+        if (data.error_msg) this.jobErrorMsg = data.error_msg;
+        if (['done', 'failed', 'cancelled'].includes(data.status)) {
+          this.eventSource.close();
+        }
+      };
+      this.eventSource.onerror = () => {
+        // SSE dropped (e.g. server restart) — fall back to polling once.
+        this.eventSource.close();
+        this.pollJobOnce();
+      };
+    },
+
+    async pollJobOnce() {
+      try {
+        const resp = await fetch(this.apiBase + '/jobs/' + this.jobId);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        this.jobStatus = data.status;
+        this.progressPct = data.progress_pct || 0;
+        this.currentChapter = data.current_chapter || '';
+        this.jobErrorMsg = data.error_msg || '';
+      } catch (e) {}
+    },
+
+    async retryJob() {
+      // Resume the same job (already-synthesized chapters are reused) rather
+      // than starting a brand-new one from scratch.
+      try {
+        const resp = await fetch(this.apiBase + '/jobs/' + this.jobId + '/retry', { method: 'POST' });
+        if (resp.ok) {
+          this.jobStatus = 'queued';
+          this.jobErrorMsg = '';
+          this.stage = 'progress';
+          this.watchJob();
+          return;
+        }
+      } catch (e) {}
+      // Fall back to starting fresh if resume isn't possible (e.g. the
+      // original book was removed).
+      this.stage = 'configure';
+      this.jobId = null;
+      this.jobStatus = 'queued';
+      this.progressPct = 0;
+      this.jobErrorMsg = '';
+    },
+
+    async cancelJob() {
+      this.cancelling = true;
+      try {
+        await fetch(this.apiBase + '/jobs/' + this.jobId + '/cancel', { method: 'POST' });
+      } catch (e) {
+      } finally {
+        this.cancelling = false;
+      }
+    },
+
+    statusLabel(status) {
+      const labels = {
+        queued: 'Queued…',
+        parsing: 'Parsing book…',
+        cleaning: 'Cleaning text…',
+        synthesizing: 'Synthesizing audio…',
+        assembling: 'Assembling audiobook…',
+        done: 'Done',
+        failed: 'Failed',
+      };
+      return labels[status] || status;
+    },
+  };
+}
+</script>
+
+</body>
+</html>

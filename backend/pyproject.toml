@@ -1,0 +1,31 @@
+[project]
+name = "bookspeech-backend"
+version = "0.1.0"
+description = "BookSpeech backend: EPUB to audiobook (.m4b) conversion service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "ebooklib>=0.18",
+    "beautifulsoup4>=4.12",
+    "ffmpeg-python>=0.2",
+    "mutagen>=1.47",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "python-multipart>=0.0.12",
+    "num2words>=0.5.13",
+    "nltk>=3.9",
+    "kokoro-onnx>=0.4.0",
+    "onnxruntime>=1.19",
+    "pypdf>=6.16.1",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "reportlab>=5.0.1",
+]

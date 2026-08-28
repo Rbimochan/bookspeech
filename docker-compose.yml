@@ -1,0 +1,31 @@
+# BookSpeech local stack: backend (FastAPI + ffmpeg + Kokoro) + static frontend.
+#
+# The Kokoro model weights (~350MB) are NOT baked into the image — download
+# them to backend/models/ on the host first (see README.md), they're mounted
+# in read-only below. This keeps the image small and the weights cacheable
+# independently of code changes.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/models:/app/models:ro
+      - ./storage:/app/storage
+    environment:
+      - STORAGE_DIR=/app/storage
+      - MAX_CONCURRENT_JOBS=1
+      - DEFAULT_VOICE=af_heart
+    restart: unless-stopped
+
+  frontend:
+    image: python:3.11-slim
+    working_dir: /site
+    volumes:
+      - ./frontend:/site:ro
+    command: ["python3", "-m", "http.server", "5173"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
